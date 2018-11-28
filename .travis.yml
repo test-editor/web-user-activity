@@ -1,0 +1,54 @@
+language: nix
+sudo: false
+cache:
+  directories:
+  - "$HOME/nix.store"
+  - "$HOME/.gradle/caches/"
+  - "$HOME/.gradle/wrapper/"
+before_install:
+- sudo mkdir -p /etc/nix
+- sudo apt-get remove google-chrome-stable -y
+- sudo apt-get remove chromium-browser -y
+- echo "substituters = https://cache.nixos.org/ file://$HOME/nix.store" | sudo tee
+  -a /etc/nix/nix.conf > /dev/null
+- echo 'require-sigs = false' | sudo tee -a /etc/nix/nix.conf > /dev/null
+before_cache:
+- mkdir -p $HOME/nix.store
+- nix copy --to file://$HOME/nix.store -f default.nix buildInputs
+env:
+  global:
+  - secure: Ivinfxp47zx+FOGTqH9VUXr7/BcKt8Jtgx8+P+w5kA5g5BuWTPuHpRssSGovtRy8CUn1Bvy3tn1ph2DdJ8tacTB7Mde3aVto3cGjSVrCnBC1LIgmlkWdDTW4ZhNhqaXj5NJR/VN6jctgzrQWDbj7+NCLkYbRWKRjFTE/sPadniSiCQL/thfEFNoRno2Xn3y3SoY2cq88UEUrtBtc7ALnugRnuQeq4EURzOpjd2imLp5L+aSnW4oy5uMYCLfHeLl66Tv6hyuujm7Z5vC0dxUP3w4ItJabItYr2dK5FQbYhnhPMsdz2ZlwY9dcki6tZbPqZj55tm/9Aj5m3/cxqbJCCEpf9IHHwyq2mIr7gurX7IPnwDnYiEgC+QhLjkb0d+62fP78xsAzb6liGAa6EVJQvHn7+zv7j2zhjOqX6ClMI0Jc1FcwDR8NYv5P4t5Te3ORyoIZHVSDaGL9aEUu28bOjUKe9Bc80U8WVPwE5p0QaYc0Suzs5TxFozW0Kl7VpP8eOj1MTL5VI0fpRbdrK7tmgRPXRIyDkmjQROeHNY5Z8olo6XZiKW+dtTgE7jgl72QyAZNKVGPGQfiOYb/jWlDWjwSisPivLkNMa92KwaoLX2nyGPFTXRIEvm4Vo6vojE6s1yTj+XDTIfxQtaH2xbuS/P+8jUJ+ErK5SzhcvJjnCbE=
+  - secure: hdEdWTJJE3VRyIDZRNtlU5UxU96bdx7aehIIPXmcDA6CaYvth1ahWJr4lYIjrg648hUPq9AMtuzRVpsTrRD6/maUOsUltybMRg6pVpw4Gc2MnVn5PlO/3eTnLvaeKu+w1MPr0ujUH3W9uEibxA3KzXkBqmSrvgnro6pLuf4aj581uRoyEEHZiPwVxfCMubNBax4vgEGvK1oxlGwCzhVlz1YzeWCz9mbcIZ0xI+cq0VLeWh49/qv4AhXW/6HmWAgsAnZ4fAQTiaQgg+tITY8viXTld5zaSlEikBseofnvtV2FXzDxvXqwvBmCC7sy+niKrUlnqYanL76mdJC2+rOD/QEd0leeW1rjfSI7vb9hbZpEt0Kkyc3cs1GcLaYHu4C5O7q96U4gRpX4YupT0JlOHPUz+Oua4pvXZMMhITBYrIoJAI7lQwXsqe/C2je3FpyjI7wWO4aerZNV/anCjxNbxDAfNRNWO/Y+GLl71dPdLUTreHPaXINeLgfkCXvbWwg4gx5ORn73uWYiGoCJ9Yek12BB/tQED0pC6Nq6qfPi2GFnpBisSFu2b8TemXrIIN4K3C+rGpsTRRFg/CKAZkZnyxH5FVbQ2+EZ7xWKFqNLMPWEm3trr+8weg3Ww1YualpzXU7EzRFgn6m6ZLOmDD8AyDJ75l8+AQgDqL36IzBa2Dg=
+  - NIXPKGS_ALLOW_UNFREE: 1
+  matrix:
+  - FIREFOX_VERSION="latest"
+  - FIREFOX_VERSION="60-esr"
+install:
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "yarn install"
+script:
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "firefox --version"
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "google-chrome --version"
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "yarn run lint"
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "xvfb-run --server-args=\"-ac -screen
+  0 1920x1080x16\" yarn run test:once"
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "xvfb-run --server-args=\"-ac -screen
+  0 1920x1080x16\" yarn run e2e"
+after_success:
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "yarn run packagr"
+- if [ "$FIREFOX_VERSION" = "latest" -a "$TRAVIS_PULL_REQUEST" = "false" -a "$TRAVIS_BRANCH"
+  = "master" -a "$TRAVIS_TAG" = "" ]; then wget https://github.com/test-editor/commons-build-automation/raw/master/travis/deploy/tag_with_new_patch_version.sh;
+  nix-shell shell-${FIREFOX_VERSION}.nix --command  "bash tag_with_new_patch_version.sh";
+  fi
+before_deploy:
+- touch .npmignore
+- cd dist/
+deploy:
+  skip_cleanup: true
+  provider: npm
+  email: testeditor.eng@gmail.com
+  api_key:
+    secure: O8hniei3sxouED1WzFR4UDhURBSS5eo6lIrmtoWgdhR7FiW5qOvakdxQ34IBQ8svTaFJbJ/y7s0n2JcSNS62cJHw90CgyxZ2REsWFlun9ppU4rtAcPwgUdeF7Evw4uWvxTg+1wC533K9/oa3ku8Y5AhO0n6TE4GqH3ELLh6msas6Kk/ZK/mjJwKdu7EHa/2PnfPzVuASAU6+VNZmKoAHs5aQ6vfzpAduMCx5s3tJjP5C6+DghcV0s0fr7+cQHgdb8jHaIwWvRuUXX/sJTSP2t4hKq83hn2ikp56TGinCEPSeEj0ObdBaKMjc91kYvizW9R0Ja5viGjPeW9rIHZDEe9nRhWVTbDLRq9E95ocgbskSHEN6e/zydQzV/KFPlvGJQ44/1X7TiKvWWBs36BTLKY3z7OLE2QWbFhSYT6YnwLPLgN4jlD+RjkAmSW2Mzep+L37gVxRjtoQyq4jWWRqTzoIbSDklW5I0IxIqcSSwVaCJ+boD6V9eTuYADY5cB9XsYgIVNjol2lr4BALu8mtxti846Rgvtsh0vcVPj301qis+XAm7Lxjonzavp0qcO8TJDWYf4HGqP799CccXsEk3s0fm3HiAqGuHKx2H7ZgDEftCWIp9P2sZrwmuTLjpwFJxf8CrCu/KlJLBaECjaGV90ZW90gbzLDp6R49Hf+Zc+NI=
+  on:
+    condition: "$FIREFOX_VERSION = latest"
+    tags: true
+    repo: test-editor/web-user-activity
