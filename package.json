@@ -1,6 +1,6 @@
 {
   "name": "@testeditor/web-user-activity",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Notifications about collaborating Test-Editor-Web users' activities.",
   "license": "EPL",
   "keywords": [
