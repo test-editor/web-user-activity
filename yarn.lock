@@ -302,6 +302,11 @@
     semver "^5.3.0"
     semver-intersect "^1.1.2"
 
+"@testeditor/messaging-service@^1.4.1":
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@testeditor/messaging-service/-/messaging-service-1.4.1.tgz#de0f8cdd18bc6b19ad01a82ba6d0f0f75ff85266"
+  integrity sha512-M9rF57W3EcLyvZvmA/GKho9D/SKKeloIvoOx+DvMRfuNB6hnrWdPR4tdrCXVAbZAQe2Y237uxdhnK7HbsUXgkw==
+
 "@types/jasmine@*", "@types/jasmine@~3.3.0":
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/@types/jasmine/-/jasmine-3.3.0.tgz#6b0e4b0192367d77e438ff660ccc4487c9602e7b"
@@ -6630,6 +6635,13 @@ trim-right@^1.0.1:
   integrity sha512-m6s2OdQe5wgpFMC+pAJ+q9djG82O2jcHPOI6RNg1yy9rCYR+WD6Nbpl32fDpfC56nirdRy+opFa/Vk7HYhqaew==
   dependencies:
     glob "^7.1.2"
+
+ts-mockito@^2.3.1:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/ts-mockito/-/ts-mockito-2.3.1.tgz#4c3467a2ddeb207966000a740a0826c970125ed1"
+  integrity sha512-chcKw0sTApwJxTyKhzbWxI4BTUJ6RStZKUVh2/mfwYqFS09PYy5pvdXZwG35QSkqT5pkdXZlYKBX196RRvEZdQ==
+  dependencies:
+    lodash "^4.17.5"
 
 ts-node@~6.0.1:
   version "6.0.5"
