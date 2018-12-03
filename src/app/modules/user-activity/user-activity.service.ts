@@ -1,30 +1,12 @@
 import { Injectable } from '@angular/core';
-import { UserActivityData, UserActivityType } from '../event-types-out';
 import { MessagingService } from '@testeditor/messaging-service';
-import { Subscription } from 'rxjs/Subscription';
-import { Subject } from 'rxjs/Subject';
-import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/timer';
 import 'rxjs/add/operator/takeUntil';
+import { Observable } from 'rxjs/Observable';
+import { Subject } from 'rxjs/Subject';
+import { Subscription } from 'rxjs/Subscription';
+import { ElementActivity, USER_ACTIVITY_UPDATED } from '../event-types-out';
 import { HttpProviderService } from '../http-provider-service/http-provider.service';
-
-export class UserActivity implements UserActivityData {
-  static readonly labelMap = new Map<UserActivityType, string>([
-    [UserActivityType.RUNNING_AS_TEST, 'is executing this test'],
-    [UserActivityType.OPENED_IN_EDITOR, 'is working on this file'],
-    [UserActivityType.ACTIVE_IN_EDITOR, 'is working on this file'],
-    [UserActivityType.DIRTY_IN_EDITOR, 'is working on this file'],
-    [UserActivityType.TYPED_INTO_EDITOR, 'is working on this file'],
-    [UserActivityType.DELETED_IN_WORKSPACE, 'deleted this file'],
-    [UserActivityType.CREATED_IN_WORKSPACE, 'created this file'],
-    [UserActivityType.MODIFIED_IN_WORKSPACE, 'changed this file'],
-  ]);
-
-  constructor(public readonly user: string, public readonly type: UserActivityType) { }
-
-  get label(): string { return `${this.user} ${UserActivity.labelMap.get(this.type)}`; }
-
-}
 
 export interface UserActivityEvent { name: string; elementKey: string; activityType: string; active: boolean; }
 export abstract class UserActivityServiceConfig { userActivityServiceUrl: string; }
@@ -102,13 +84,12 @@ export class UserActivityService {
     const http = await this.httpProvider.getHttpClient();
     const url = this.config.userActivityServiceUrl + UserActivityService.SERVICE_PATH;
     const payload = Array.from(this.userActivityStates, ([key, value]) => ({element: key, activities: Array.from(value)}));
-    const response = await http.post(url, payload, { responseType: 'text' }).toPromise();
+    const response = await http.post<ElementActivity[]>(url, payload).toPromise();
     this.broadcastCollaboratorActivity(response);
   }
 
-  private broadcastCollaboratorActivity(activities: any): void {
-    // TODO implement
+  private broadcastCollaboratorActivity(activities: ElementActivity[]): void {
+    this.messageBus.publish(USER_ACTIVITY_UPDATED, activities);
   }
-
 
 }

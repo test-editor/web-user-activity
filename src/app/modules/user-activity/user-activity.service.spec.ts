@@ -5,6 +5,7 @@ import { MessagingService } from '@testeditor/messaging-service';
 import { anything, instance, mock, verify, when } from 'ts-mockito';
 import { HttpProviderService } from '../http-provider-service/http-provider.service';
 import { UserActivityEvent, UserActivityService, UserActivityServiceConfig } from './user-activity.service';
+import { ElementActivity, USER_ACTIVITY_UPDATED } from '../event-types-out';
 
 
 describe('UserActivityService', () => {
@@ -187,4 +188,35 @@ describe('UserActivityService', () => {
       // cleanup
       service.stop();
     })));
+
+
+    it('should publish activities of collaborating users on the message bus when receiving update from server',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      let actualPayload: ElementActivity[];
+      messageBus.subscribe(USER_ACTIVITY_UPDATED, payload => actualPayload = payload);
+      const serverUpdate: ElementActivity[] = [{
+        element: '/path/to/file/collaborator/worksOn.ext',
+        activities: [
+          { user: 'John Doe', type: 'openedFile'},
+          { user: 'John Doe', type: 'typesIntoFile'},
+          { user: 'Jane Doe', type: 'deletedElement'}]
+      }];
+      const userActivityEvent: UserActivityEvent = { name: 'some.event', active: true, activityType: 'sampleType', elementKey: 'path' };
+      service.start(userActivityEvent);
+      messageBus.publish('some.event', { path: '/path/to/workspace/element.ext' });
+      tick();
+      const request = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
+
+      // when
+      request.flush(serverUpdate);
+      tick();
+
+      // then
+      expect(actualPayload).toEqual(serverUpdate);
+
+      // cleanup
+      service.stop();
+    })));
+
 });
