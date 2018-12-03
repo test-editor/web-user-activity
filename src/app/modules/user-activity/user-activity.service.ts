@@ -6,7 +6,7 @@ import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import { Subscription } from 'rxjs/Subscription';
 import { ElementActivity, USER_ACTIVITY_UPDATED } from '../event-types-out';
-import { HttpProviderService } from '../http-provider-service/http-provider.service';
+import { HttpProviderService } from '@testeditor/testeditor-commons';
 
 export interface UserActivityEvent { name: string; elementKey: string; activityType: string; active: boolean; }
 export abstract class UserActivityServiceConfig { userActivityServiceUrl: string; }

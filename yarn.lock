@@ -302,10 +302,17 @@
     semver "^5.3.0"
     semver-intersect "^1.1.2"
 
-"@testeditor/messaging-service@^1.4.1":
+"@testeditor/messaging-service@~1.4.0":
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/@testeditor/messaging-service/-/messaging-service-1.4.1.tgz#de0f8cdd18bc6b19ad01a82ba6d0f0f75ff85266"
   integrity sha512-M9rF57W3EcLyvZvmA/GKho9D/SKKeloIvoOx+DvMRfuNB6hnrWdPR4tdrCXVAbZAQe2Y237uxdhnK7HbsUXgkw==
+
+"@testeditor/testeditor-commons@~0.3.0":
+  version "0.3.9"
+  resolved "https://registry.yarnpkg.com/@testeditor/testeditor-commons/-/testeditor-commons-0.3.9.tgz#defa1d899eb8591882417c8c40a78b7b70f23641"
+  integrity sha512-rkaJCSbXkg4daG/ff8ytGCs2GkIslfBryff1Ws/x/ktyYx8GrrUkWeZ7ZKvG/7LxbtBB+zdTvsShLZT3yb5ROA==
+  dependencies:
+    tslib "^1.7.1"
 
 "@types/jasmine@*", "@types/jasmine@~3.3.0":
   version "3.3.0"

@@ -3,7 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { fakeAsync, inject, TestBed, tick } from '@angular/core/testing';
 import { MessagingService } from '@testeditor/messaging-service';
 import { anything, instance, mock, verify, when } from 'ts-mockito';
-import { HttpProviderService } from '../http-provider-service/http-provider.service';
+import { HttpProviderService } from '@testeditor/testeditor-commons';
 import { UserActivityEvent, UserActivityService, UserActivityServiceConfig } from './user-activity.service';
 import { ElementActivity, USER_ACTIVITY_UPDATED } from '../event-types-out';
 
