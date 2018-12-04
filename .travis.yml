@@ -33,9 +33,9 @@ script:
 - nix-shell shell-${FIREFOX_VERSION}.nix --command "yarn run lint"
 - nix-shell shell-${FIREFOX_VERSION}.nix --command "xvfb-run --server-args=\"-ac -screen 0 1920x1080x16\" yarn run test:once"
 - nix-shell shell-${FIREFOX_VERSION}.nix --command "xvfb-run --server-args=\"-ac -screen 0 1920x1080x16\" yarn run e2e"
+- nix-shell shell-${FIREFOX_VERSION}.nix --command "yarn run packagr"
 
 after_success:
-- nix-shell shell-${FIREFOX_VERSION}.nix --command "yarn run packagr"
 # Autoincrement of patch level version:
 # Tag the repo with a new patch level version tag, if this build is done on
 #     'FIREFOX_VERSION = latest' and (only one of the matrix-builds is relevant)
