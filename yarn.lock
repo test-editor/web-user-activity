@@ -308,9 +308,9 @@
   integrity sha512-M9rF57W3EcLyvZvmA/GKho9D/SKKeloIvoOx+DvMRfuNB6hnrWdPR4tdrCXVAbZAQe2Y237uxdhnK7HbsUXgkw==
 
 "@testeditor/testeditor-commons@~0.3.0":
-  version "0.3.9"
-  resolved "https://registry.yarnpkg.com/@testeditor/testeditor-commons/-/testeditor-commons-0.3.9.tgz#defa1d899eb8591882417c8c40a78b7b70f23641"
-  integrity sha512-rkaJCSbXkg4daG/ff8ytGCs2GkIslfBryff1Ws/x/ktyYx8GrrUkWeZ7ZKvG/7LxbtBB+zdTvsShLZT3yb5ROA==
+  version "0.3.10"
+  resolved "https://registry.yarnpkg.com/@testeditor/testeditor-commons/-/testeditor-commons-0.3.10.tgz#51b2723950f990220723d586a7ceb188082442e6"
+  integrity sha512-E4EUZeNDt0wRtXoFv741+tB96W1p5YlZMxs4/t8H9u1OALEr2ggGqVKJaYmq1Adkin7Eznm1ElOYmixjX3j/cw==
   dependencies:
     tslib "^1.7.1"
 
