@@ -8,7 +8,29 @@ import { Subscription } from 'rxjs/Subscription';
 import { ElementActivity, USER_ACTIVITY_UPDATED } from '../event-types-out';
 import { HttpProviderService } from '@testeditor/testeditor-commons';
 
-export interface UserActivityEvent { name: string; elementKey: string; activityType: string; active: boolean; }
+export interface UserActivityEvent {
+  /**
+   * The name of the event to be used for the message bus subscription.
+   */
+  name: string;
+  /**
+   * An attribute expected to exist on the event's payload object.
+   * `payload[elementKey]` is expected to contain the element identifier (e.g. the path of a workspace element) the event refers to.
+   */
+  elementKey: string;
+  /**
+   * A string identifying a particular activity a user is performing, e.g. "executedTest" could be used to refer to a user having started to
+   * execute the referenced workspace element as a test case.
+   */
+  activityType: string;
+  /**
+   * Whether the event referenced by `name` is signalling that the activity (`activityType`) on a given element (`elementKey`) has started
+   * or ceased. If `active` is `true`, the event is taken to mean that the activity has started, or continues to be performed. If `active`
+   * is `false`, the event is taken to signal that the activity is no longer being performed. Activities have to be "turned off" this way,
+   * explicitly.
+   */
+  active: boolean;
+}
 export abstract class UserActivityServiceConfig { userActivityServiceUrl: string; }
 
 @Injectable()
