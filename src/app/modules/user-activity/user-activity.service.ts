@@ -61,20 +61,21 @@ export class UserActivityService {
         this.subscriptions = subscription;
       }
     });
+    this.startPeriodicPolling();
   }
 
   stop() {
     this.subscriptions.unsubscribe();
     this.userActivityEvent.next();
     this.userActivityEvent.complete();
+    this.userActivityStates.clear();
+    this.poll();
   }
 
   private processUserActivityUpdate(elementId: string, activityType: string, active: boolean) {
     this.userActivityEvent.next();
     this.updateUserActivity(elementId, activityType, active);
-    Observable.timer(0, UserActivityService.POLLING_INTERVAL_MS)
-    .takeUntil(this.userActivityEvent)
-    .subscribe(() => this.poll());
+    this.startPeriodicPolling();
   }
 
   private updateUserActivity(elementId: string, activityType: string, active: boolean) {
@@ -100,6 +101,12 @@ export class UserActivityService {
         this.userActivityStates.delete(elementId);
       }
     }
+  }
+
+  private startPeriodicPolling() {
+    Observable.timer(0, UserActivityService.POLLING_INTERVAL_MS)
+    .takeUntil(this.userActivityEvent)
+    .subscribe(() => this.poll());
   }
 
   private async poll(): Promise<void> {
