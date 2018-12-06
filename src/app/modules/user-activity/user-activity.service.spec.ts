@@ -227,11 +227,12 @@ describe('UserActivityService', () => {
       const userActivityEvent: UserActivityEvent = { name: eventName, active: true, activityType: 'sampleType', elementKey: 'path' };
       service.start(userActivityEvent);
       tick();
+      // starting the service will immediately result in a request, which we're not interested in here, but the mock has to respond to it
       const initialRequest = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'initial request');
       initialRequest.flush('response');
       httpTestingController.verify();
-      expect(initialRequest.request.body).toEqual([]);
 
+      // signal activity to ensure that final request isn't just empty "by accident"
       messageBus.publish(eventName, { path: '/path/to/workspace/element.ext' });
       tick();
       const requestOnChange = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'request on change');
@@ -248,7 +249,6 @@ describe('UserActivityService', () => {
       signOffRequest.flush('response');
       httpTestingController.verify();
       expect(signOffRequest.request.body).toEqual([]);
-
     })));
 
 });
