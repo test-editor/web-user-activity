@@ -135,20 +135,21 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
-  it('should start polling periodically after first user activity event',
+  it('should start polling periodically after being started',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
-      const eventName = 'user.activity.event';
-      const userActivityEvent: UserActivityEvent = { name: eventName, active: true, activityType: 'sampleType', elementKey: 'path' };
-      service.start(userActivityEvent);
+      const userActivityEvent: UserActivityEvent = { name: 'some.event', active: true, activityType: 'sampleType', elementKey: 'path' };
 
       // when
-      messageBus.publish(eventName, { path: '/path/to/workspace/element.ext' });
+      service.start(userActivityEvent);
       tick(3 * UserActivityService.POLLING_INTERVAL_MS);
 
       // then
       const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(requests.length).toEqual(4);
+      requests.forEach((testRequest) => {
+        expect(testRequest.request.body).toEqual([]);
+      });
       requests[0].flush('response');
       requests[1].flush('response');
       requests[2].flush('response');
@@ -217,6 +218,37 @@ describe('UserActivityService', () => {
 
       // cleanup
       service.stop();
+    })));
+
+    it('should send one final request with an empty list of activities to the server when being stopped',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const eventName = 'user.activity.event';
+      const userActivityEvent: UserActivityEvent = { name: eventName, active: true, activityType: 'sampleType', elementKey: 'path' };
+      service.start(userActivityEvent);
+      tick();
+      // starting the service will immediately result in a request, which we're not interested in here, but the mock has to respond to it
+      const initialRequest = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'initial request');
+      initialRequest.flush('response');
+      httpTestingController.verify();
+
+      // signal activity to ensure that final request isn't just empty "by accident"
+      messageBus.publish(eventName, { path: '/path/to/workspace/element.ext' });
+      tick();
+      const requestOnChange = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'request on change');
+      requestOnChange.flush('response');
+      httpTestingController.verify();
+      expect(requestOnChange.request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['sampleType'] }]);
+
+      // when
+      service.stop();
+      tick();
+
+      // then
+      const signOffRequest = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'request to sign off');
+      signOffRequest.flush('response');
+      httpTestingController.verify();
+      expect(signOffRequest.request.body).toEqual([]);
     })));
 
 });
