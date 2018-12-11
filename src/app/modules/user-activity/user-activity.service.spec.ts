@@ -251,4 +251,113 @@ describe('UserActivityService', () => {
       expect(signOffRequest.request.body).toEqual([]);
     })));
 
+    it('should remove previously recorded activity automatically when a timeout was given',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const activityEvent = 'activity.signal';
+      const userActivityEvent = { name: activityEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: 7 };
+      service.start(userActivityEvent);
+      tick();
+
+      // when
+      messageBus.publish(activityEvent, { path: '/path/to/workspace/element.ext' });
+
+      // then
+      tick(6000);
+      const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(requests.length).toEqual(3);
+      requests[0].flush('response'); // request sent right after 'start(…)'
+      requests[1].flush('response'); // request sent right after message bus event (resetting polling interval)
+      requests[2].flush('response'); // request sent five seconds after the previous one (periodic polling)
+      httpTestingController.verify();
+      expect((requests[0].request.body as Array<ElementActivity>).length).toEqual(0);
+      expect(requests[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+      expect(requests[2].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+
+      tick(4000); // total time passed is now 10 secs: another poll request has just occurred, but the activity has timed out 3 secs ago
+      const requestAfterTimeout = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      requestAfterTimeout.flush('response');
+      httpTestingController.verify();
+      expect((requestAfterTimeout.request.body as Array<ElementActivity>).length).toEqual(0);
+
+      // cleanup
+      service.stop();
+    })));
+
+    it('should reset the timer when receiving a second message bus event for an activity with a timeout within the interval',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const activityEvent = 'activity.signal';
+      const userActivityEvent = { name: activityEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: 7 };
+      service.start(userActivityEvent);
+      tick();
+      messageBus.publish(activityEvent, { path: '/path/to/workspace/element.ext' });
+
+      tick(6000);
+      const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(requests.length).toEqual(3);
+      requests[0].flush('response'); // request sent right after 'start(…)'
+      requests[1].flush('response'); // request sent right after message bus event (resetting polling interval)
+      requests[2].flush('response'); // request sent five seconds after the previous one (periodic polling)
+      httpTestingController.verify();
+
+      // when
+      messageBus.publish(activityEvent, { path: '/path/to/workspace/element.ext' }); // resets both polling interval and activity timeout
+
+      // then
+      tick(5000); // another poll request has just occurred, activity should remain for 2 more secs!
+      const requestsBeforeTimeout = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      requestsBeforeTimeout[0].flush('response'); // request sent right after second message bus event (resetting polling interval)
+      requestsBeforeTimeout[1].flush('response'); // request sent five seconds after the previous one (periodic polling)
+      httpTestingController.verify();
+      expect(requestsBeforeTimeout[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+      expect(requestsBeforeTimeout[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+
+      tick(5000); // another poll request has just occurred, but the activity has timed out 3 secs ago
+      const requestAfterTimeout = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      requestAfterTimeout.flush('response');
+      httpTestingController.verify();
+      expect((requestAfterTimeout.request.body as Array<ElementActivity>).length).toEqual(0);
+
+      // cleanup
+      service.stop();
+      })));
+
+      it('should allow multiple activities with a timeout for the same element',
+      fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+        // given
+        const firstEvent = 'first.event';
+        const secondEvent = 'second.event';
+        const userActivityEvents = [
+           { name: firstEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: 6 },
+           { name: secondEvent, active: true, activityType: 'aSecondType', elementKey: 'path', timeout: 9 },
+          ];
+        service.start(...userActivityEvents);
+        tick();
+
+        // when
+        messageBus.publish(firstEvent, { path: '/path/to/workspace/element.ext' });
+        tick(1500);
+        messageBus.publish(secondEvent, { path: '/path/to/workspace/element.ext' });
+        tick(10000);
+
+        // then
+        const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+        expect(requests.length).toEqual(5);
+        requests[0].flush('response'); //  0.0s: request sent right after 'start(…)'
+        requests[1].flush('response'); //  0.0s: request sent right after first message bus event (resetting polling interval)
+        requests[2].flush('response'); //  1.5s: request sent right after second message bus event (resetting polling interval)
+        requests[3].flush('response'); //  6.5s: periodic polling; 'aType' timed out 0.5s ago
+        requests[4].flush('response'); // 11.5s: periodic polling; 'aSecondType' timed out 0.5s ago
+        httpTestingController.verify();
+        expect((requests[0].request.body as Array<ElementActivity>).length).toEqual(0);
+        expect(requests[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+        expect(requests[2].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType', 'aSecondType'] }]);
+        expect(requests[3].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aSecondType'] }]);
+        expect((requests[4].request.body as Array<ElementActivity>).length).toEqual(0);
+
+        // cleanup
+        service.stop();
+      })));
+
 });
