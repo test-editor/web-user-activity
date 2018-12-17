@@ -30,9 +30,10 @@ export interface UserActivityEvent {
    * Whether the event referenced by `name` is signalling that the activity (`activityType`) on a given element (`elementKey`) has started
    * or ceased. If `active` is `true`, the event is taken to mean that the activity has started, or continues to be performed. If `active`
    * is `false`, the event is taken to signal that the activity is no longer being performed. Activities have to be "turned off" this way,
-   * explicitly.
+   * explicitly, unless a timeout is specified.
+   * The value can be either provided as a plain boolean, or as a callback function that gets passed the payload of the triggering event.
    */
-  active: boolean;
+  active: ((payload: any) => boolean) | boolean;
 
   /**
    * If specified, the activity will be automatically turned off after the specified duration in seconds. The `timeout` field only has
@@ -59,7 +60,8 @@ export class UserActivityService {
     events.forEach((event) => {
       const subscription = this.messageBus.subscribe(event.name, (payload) => {
         if (payload && payload[event.elementKey]) {
-          this.processUserActivityUpdate(payload[event.elementKey], event.activityType, event.active, event.timeout);
+          const active_ = this.isCallback(event.active) ? event.active(payload) : event.active;
+          this.processUserActivityUpdate(payload[event.elementKey], event.activityType, active_, event.timeout);
         } else {
           console.error(`failed to determine workspace element on receiving user activity event of type "${event.name}"` +
             `(payload empty, or missing field "${event.elementKey}")`, payload);
@@ -80,6 +82,10 @@ export class UserActivityService {
     this.userActivityEvent.complete();
     this.userActivityStates.clear();
     this.poll();
+  }
+
+  private isCallback<T>(value: ((payload: any) => T) | T): value is (payload: any) => T {
+    return typeof value === 'function';
   }
 
   private processUserActivityUpdate(elementId: string, activityType: string, active: boolean, timeout?: number) {
