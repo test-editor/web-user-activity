@@ -23,14 +23,17 @@ export interface UserActivityEvent {
   elementKey: string;
   /**
    * A string identifying a particular activity a user is performing, e.g. "executedTest" could be used to refer to a user having started to
-   * execute the referenced workspace element as a test case.
+   * execute the referenced workspace element as a test case. Alternatively, it may also refer to an activity group (see below): this is
+   * only useful if `active` is `false`, and will then cause whatever activity belonging to the given group is active to be deactivated.
+   * Activities that became active as part of a group can only be deactivated by deactivating the group this way.
    */
   activityType: string;
   /**
    * Whether the event referenced by `name` is signalling that the activity (`activityType`) on a given element (`elementKey`) has started
    * or ceased. If `active` is `true`, the event is taken to mean that the activity has started, or continues to be performed. If `active`
    * is `false`, the event is taken to signal that the activity is no longer being performed. Activities have to be "turned off" this way,
-   * explicitly, unless a timeout is specified.
+   * explicitly, unless a timeout is specified. Activities that have been associated with a group upon activation can only be deactivated
+   * by using their group name as value for `activityType`.
    * The value can be either provided as a plain boolean, or as a callback function that gets passed the payload of the triggering event.
    */
   active: ((payload: any) => boolean) | boolean;
@@ -40,8 +43,17 @@ export interface UserActivityEvent {
    * well-defined semantics if `active === true`; otherwise, `timeout` will be ignored.
    */
   timeout?: number;
+
+  /**
+   * If specified, associates this activity type with the given group. Activity types in the same group are mutually exclusive, meaning that
+   * only one of them can be active at the same time for any given element. If an activity of the given group is already active, it will
+   * automatically be deactivated upon receiving the named event, if `active` is `true`. If `active` is false, this property has no effect.
+   */
+  group?: string;
 }
 export abstract class UserActivityServiceConfig { userActivityServiceUrl: string; }
+
+interface UserActivityUpdate { elementId: string; activityType: string; active: boolean; timeout?: number; group: string; }
 
 @Injectable()
 export class UserActivityService {
@@ -49,7 +61,7 @@ export class UserActivityService {
   public static readonly POLLING_INTERVAL_MS = 5000;
   private userActivityEvent: Subject<void>;
   private subscriptions: Subscription;
-  private readonly userActivityStates = new Map<string, Set<string>>();
+  private readonly userActivityStates = new Map<string, Map<string, string>>();
   private readonly userActivityTimeoutTimers = new Map<string, Subject<void>>();
 
   constructor(private config: UserActivityServiceConfig, private messageBus: MessagingService, private httpProvider: HttpProviderService) {
@@ -60,8 +72,12 @@ export class UserActivityService {
     events.forEach((event) => {
       const subscription = this.messageBus.subscribe(event.name, (payload) => {
         if (payload && payload[event.elementKey]) {
-          const active_ = this.isCallback(event.active) ? event.active(payload) : event.active;
-          this.processUserActivityUpdate(payload[event.elementKey], event.activityType, active_, event.timeout);
+          this.processUserActivityUpdate({
+            elementId: payload[event.elementKey],
+            activityType: event.activityType,
+            active: this.isCallback(event.active) ? event.active(payload) : event.active,
+            timeout: event.timeout,
+            group: event.group});
         } else {
           console.error(`failed to determine workspace element on receiving user activity event of type "${event.name}"` +
             `(payload empty, or missing field "${event.elementKey}")`, payload);
@@ -88,28 +104,28 @@ export class UserActivityService {
     return typeof value === 'function';
   }
 
-  private processUserActivityUpdate(elementId: string, activityType: string, active: boolean, timeout?: number) {
+  private processUserActivityUpdate(update: UserActivityUpdate) {
     this.userActivityEvent.next();
-    this.updateUserActivity(elementId, activityType, active);
-    if (timeout) {
-      this.timeoutUserActivity(elementId, activityType, timeout);
+    this.updateUserActivity(update.elementId, update.activityType, update.active, update.group);
+    if (update.timeout) {
+      this.timeoutUserActivity(update.elementId, update.activityType, update.timeout);
     }
     this.startPeriodicPolling();
   }
 
-  private updateUserActivity(elementId: string, activityType: string, active: boolean) {
+  private updateUserActivity(elementId: string, activityType: string, active: boolean, group?: string) {
     if (active) {
-      this.addUserActivity(elementId, activityType);
+      this.addUserActivity(elementId, activityType, group ? group : activityType);
     } else {
       this.removeUserActivity(elementId, activityType);
     }
   }
 
-  private addUserActivity(elementId: string, activityType: string) {
+  private addUserActivity(elementId: string, activityType: string, group: string) {
     if (!this.userActivityStates.has(elementId)) {
-      this.userActivityStates.set(elementId, new Set<string>());
+      this.userActivityStates.set(elementId, new Map<string, string>());
     }
-    this.userActivityStates.get(elementId).add(activityType);
+    this.userActivityStates.get(elementId).set(group, activityType);
   }
 
   private timeoutUserActivity(elementId: string, activityType: string, timeoutSecs: number) {
@@ -153,7 +169,7 @@ export class UserActivityService {
   private async poll(): Promise<void> {
     const http = await this.httpProvider.getHttpClient();
     const url = this.config.userActivityServiceUrl + UserActivityService.SERVICE_PATH;
-    const payload = Array.from(this.userActivityStates, ([key, value]) => ({element: key, activities: Array.from(value)}));
+    const payload = Array.from(this.userActivityStates, ([key, group]) => ({element: key, activities: Array.from(group.values())}));
     console.log('polling backend!', payload);
     const response = await http.post<ElementActivity[]>(url, payload).toPromise();
     this.broadcastCollaboratorActivity(response);
