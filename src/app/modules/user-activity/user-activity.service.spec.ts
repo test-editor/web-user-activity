@@ -326,20 +326,25 @@ describe('UserActivityService', () => {
       it('should allow multiple activities with a timeout for the same element',
       fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
         // given
+        const slightlyAfterFirstPoll_Secs = UserActivityService.POLLING_INTERVAL_MS * 0.0012;
+        const aBitBeforeSecondPoll_Secs = UserActivityService.POLLING_INTERVAL_MS * 0.0018;
+        const beforeFirstPollAndTimeout_Millis = UserActivityService.POLLING_INTERVAL_MS * 0.3;
+        const timeOfSecondPoll = UserActivityService.POLLING_INTERVAL_MS * 2;
+
         const firstEvent = 'first.event';
         const secondEvent = 'second.event';
         const userActivityEvents = [
-           { name: firstEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: 6 },
-           { name: secondEvent, active: true, activityType: 'aSecondType', elementKey: 'path', timeout: 9 },
+           { name: firstEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: slightlyAfterFirstPoll_Secs},
+           { name: secondEvent, active: true, activityType: 'aSecondType', elementKey: 'path', timeout: aBitBeforeSecondPoll_Secs },
           ];
         service.start(...userActivityEvents);
         tick();
 
         // when
         messageBus.publish(firstEvent, { path: '/path/to/workspace/element.ext' });
-        tick(1500);
+        tick(beforeFirstPollAndTimeout_Millis);
         messageBus.publish(secondEvent, { path: '/path/to/workspace/element.ext' });
-        tick(10000);
+        tick(timeOfSecondPoll);
 
         // then
         const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
