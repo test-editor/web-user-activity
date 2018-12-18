@@ -26,8 +26,11 @@ export interface UserActivityEvent {
    * execute the referenced workspace element as a test case. Alternatively, it may also refer to an activity group (see below): this is
    * only useful if `active` is `false`, and will then cause whatever activity belonging to the given group is active to be deactivated.
    * Activities that became active as part of a group can only be deactivated by deactivating the group this way.
+   * Alternatively, activityType can be specified as an array of transition objects with `from` and `to` fields each referring to an
+   * activity type. In that case, for each transition object, **iff** the `from`-activity is active, it will be deactivated, and the
+   * `to`-activity will be activated, instead. Transitions, and all `from` and `to` activities, must be associated with a single group.
    */
-  activityType: string;
+  activityType: string | { from?: string, to: string }[];
   /**
    * Whether the event referenced by `name` is signalling that the activity (`activityType`) on a given element (`elementKey`) has started
    * or ceased. If `active` is `true`, the event is taken to mean that the activity has started, or continues to be performed. If `active`
@@ -53,7 +56,13 @@ export interface UserActivityEvent {
 }
 export abstract class UserActivityServiceConfig { userActivityServiceUrl: string; }
 
-interface UserActivityUpdate { elementId: string; activityType: string; active: boolean; timeout?: number; group: string; }
+interface UserActivityUpdate {
+  elementId: string;
+  activityType: string | { from?: string, to: string }[];
+  active: boolean;
+  timeout?: number;
+  group: string;
+}
 
 @Injectable()
 export class UserActivityService {
@@ -104,13 +113,29 @@ export class UserActivityService {
     return typeof value === 'function';
   }
 
+  private isTransitionArray(value: string | { from?: string, to: string }[]): value is { from?: string, to: string }[] {
+    return Array.isArray(value);
+  }
+
   private processUserActivityUpdate(update: UserActivityUpdate) {
     this.userActivityEvent.next();
-    this.updateUserActivity(update.elementId, update.activityType, update.active, update.group);
-    if (update.timeout) {
-      this.timeoutUserActivity(update.elementId, update.activityType, update.timeout);
+    if (this.isTransitionArray(update.activityType)) {
+      this.fireTransition(update.activityType, update.elementId, update.group);
+    } else {
+      this.updateUserActivity(update.elementId, update.activityType, update.active, update.group);
+      if (update.timeout) {
+        this.timeoutUserActivity(update.elementId, update.activityType, update.timeout);
+      }
     }
     this.startPeriodicPolling();
+  }
+
+  private fireTransition(transitions: { from?: string, to: string }[], elementId: string, group: string) {
+    const currentActivity = this.userActivityStates.get(elementId) ? this.userActivityStates.get(elementId).get(group) : undefined;
+    const transition = transitions.find((t) => t.from === currentActivity);
+    if (transition) {
+      this.addUserActivity(elementId, transition.to, group);
+    }
   }
 
   private updateUserActivity(elementId: string, activityType: string, active: boolean, group?: string) {

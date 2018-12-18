@@ -453,4 +453,35 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
+    it('should swap activities according to given transitions',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const event = 'user.activity.event1';
+      const type1 = 'user.activity.type1';
+      const type2 = 'user.activity.type2';
+      const transitions = [{to: type1}, {from: type1, to: type2}, {from: type2, to: type1}];
+      const userActivityEvent1: UserActivityEvent = { name: event, active: true, activityType: transitions, elementKey: 'path' };
+      service.start(userActivityEvent1);
+
+      // when
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(request.length).toEqual(3);
+      request.forEach((req) => req.flush('response'));
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+      expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type2] }]);
+      expect(request[2].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+
+      // cleanup
+      service.stop();
+    })));
+
 });
