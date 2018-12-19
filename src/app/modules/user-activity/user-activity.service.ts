@@ -120,7 +120,9 @@ export class UserActivityService {
   private processUserActivityUpdate(update: UserActivityUpdate) {
     this.userActivityEvent.next();
     if (this.isTransitionArray(update.activityType)) {
-      this.fireTransition(update.activityType, update.elementId, update.group);
+      if (update.active) {
+        this.fireTransition(update.activityType, update.elementId, update.group);
+      }
     } else {
       this.updateUserActivity(update.elementId, update.activityType, update.active, update.group);
       if (update.timeout) {
