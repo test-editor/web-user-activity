@@ -53,6 +53,14 @@ export interface UserActivityEvent {
    * automatically be deactivated upon receiving the named event, if `active` is `true`. If `active` is false, this property has no effect.
    */
   group?: string;
+  /**
+   * If specified, all activities associated with the `payload[elementKey]` will be moved to `payload[newElementKey]`, before activating
+   * the specified activity type on the "old" element. Notice that this means that, when it comes to activation, the old element will
+   * have no activities associated with it, which needs to be into consideration, e.g. when using transitions.
+   * After the event has been processed, the old element will have only this one activity associated with it, while the new element will
+   * have all activities previously associated with the old element.
+   */
+  newElementKey?: string;
 }
 export abstract class UserActivityServiceConfig { userActivityServiceUrl: string; }
 
@@ -62,6 +70,7 @@ interface UserActivityUpdate {
   active: boolean;
   timeout?: number;
   group: string;
+  newElementId?: string;
 }
 
 @Injectable()
@@ -86,7 +95,8 @@ export class UserActivityService {
             activityType: event.activityType,
             active: this.isCallback(event.active) ? event.active(payload) : event.active,
             timeout: event.timeout,
-            group: event.group});
+            group: event.group,
+            newElementId: event.newElementKey ? payload[event.newElementKey] : undefined});
         } else {
           console.error(`failed to determine workspace element on receiving user activity event of type "${event.name}"` +
             `(payload empty, or missing field "${event.elementKey}")`, payload);
@@ -117,8 +127,19 @@ export class UserActivityService {
     return Array.isArray(value);
   }
 
+
+  private renameElement(oldElementId: string, newElementId: string) {
+    if (this.userActivityStates.has(oldElementId)) {
+      this.userActivityStates.set(newElementId, this.userActivityStates.get(oldElementId));
+      this.userActivityStates.delete(oldElementId);
+    }
+  }
+
   private processUserActivityUpdate(update: UserActivityUpdate) {
     this.userActivityEvent.next();
+    if (update.newElementId) {
+      this.renameElement(update.elementId, update.newElementId);
+    }
     if (this.isTransitionArray(update.activityType)) {
       if (update.active) {
         this.fireTransition(update.activityType, update.elementId, update.group);

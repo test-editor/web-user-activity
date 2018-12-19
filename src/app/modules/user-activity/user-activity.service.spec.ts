@@ -514,4 +514,32 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
+    it('should transfer all user activities from the old to the new element on receiving a rename event',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const activityEvent = 'activity.event';
+      const renameEvent = 'rename.event';
+      const userActivityEvent: UserActivityEvent = { name: activityEvent, active: true, activityType: 'aType', elementKey: 'path' };
+      const elementRenameEvent: UserActivityEvent = { name: renameEvent, active: true, activityType: 'renamed',
+                                                      elementKey: 'oldPath', newElementKey: 'newPath' };
+      service.start(userActivityEvent, elementRenameEvent);
+
+      // when
+      messageBus.publish(activityEvent, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(renameEvent, { oldPath: '/path/to/workspace/element.ext', newPath: '/path/to/renamed/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(request.length).toEqual(2);
+      request.forEach((req) => req.flush('response'));
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+      expect(request[1].request.body).toEqual([{ element: '/path/to/renamed/element.ext', activities: ['aType'] },
+                                               { element: '/path/to/workspace/element.ext', activities: ['renamed'] }]);
+
+      // cleanup
+      service.stop();
+    })));
 });
