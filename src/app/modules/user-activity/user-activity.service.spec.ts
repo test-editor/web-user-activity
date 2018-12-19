@@ -72,6 +72,35 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
+    it('should evaluate active state dynamically when a callback was provided',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const eventName = 'user.activity.event';
+      const userActivityEvent: UserActivityEvent = {
+        name: eventName,
+        active: (payload) => payload.active,
+        activityType: 'sampleType',
+        elementKey: 'path'
+      };
+      service.start(userActivityEvent);
+
+      // when
+      messageBus.publish(eventName, { path: '/path/to/workspace/element.ext', active: true });
+      tick();
+      messageBus.publish(eventName, { path: '/path/to/workspace/element.ext', active: false });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      request[0].flush('response'); request[1].flush('response');
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['sampleType'] }]);
+      expect(request[1].request.body).toEqual([]);
+
+      // cleanup
+      service.stop();
+    })));
+
   it('should list all activity types for an element when corresponding user activity events were received',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
