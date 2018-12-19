@@ -153,6 +153,7 @@ export class UserActivityService {
       this.userActivityStates.set(elementId, new Map<string, string>());
     }
     this.userActivityStates.get(elementId).set(group, activityType);
+    console.log(`set user activity [${group}, ${activityType}] for "${elementId}"`);
   }
 
   private timeoutUserActivity(elementId: string, activityType: string, timeoutSecs: number) {
@@ -176,6 +177,7 @@ export class UserActivityService {
       if (activitySet.size === 0) {
         this.userActivityStates.delete(elementId);
       }
+      console.log(`deleted user activity ${activityType} of "${elementId}"`);
     }
     const timerKey = this.createTimeoutTimerKey(elementId, activityType);
     if (this.userActivityTimeoutTimers.has(timerKey)) {
