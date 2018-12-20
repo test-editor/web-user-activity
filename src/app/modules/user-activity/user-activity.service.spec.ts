@@ -72,7 +72,7 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
-    it('should evaluate active state dynamically when a callback was provided',
+  it('should evaluate active state dynamically when a callback was provided',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
       const eventName = 'user.activity.event';
@@ -129,7 +129,7 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
-    it('should remove previously recorded activity when a corresponding user activity event is received (active=false)',
+  it('should remove previously recorded activity when a corresponding user activity event is received (active=false)',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
       const activityEvent = 'activity.signal';
@@ -138,7 +138,8 @@ describe('UserActivityService', () => {
       const userActivityEvent: UserActivityEvent = { name: activityEvent, active: true, activityType: 'aType', elementKey: 'path' };
       const userInactivityEvent: UserActivityEvent = { name: inactivityEvent, active: false, activityType: 'aType', elementKey: 'path' };
       const differentUserActivityEvent: UserActivityEvent = {
-        name: differentEvent, active: true, activityType: 'anotherType', elementKey: 'path' };
+        name: differentEvent, active: true, activityType: 'anotherType', elementKey: 'path'
+      };
       service.start(userActivityEvent, userInactivityEvent, differentUserActivityEvent);
 
       // when
@@ -220,7 +221,7 @@ describe('UserActivityService', () => {
     })));
 
 
-    it('should publish activities of collaborating users on the message bus when receiving update from server',
+  it('should publish activities of collaborating users on the message bus when receiving update from server',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
       let actualPayload: ElementActivity[];
@@ -228,9 +229,9 @@ describe('UserActivityService', () => {
       const serverUpdate: ElementActivity[] = [{
         element: '/path/to/file/collaborator/worksOn.ext',
         activities: [
-          { user: 'John Doe', type: 'openedFile'},
-          { user: 'John Doe', type: 'typesIntoFile'},
-          { user: 'Jane Doe', type: 'deletedElement'}]
+          { user: 'John Doe', type: 'openedFile' },
+          { user: 'John Doe', type: 'typesIntoFile' },
+          { user: 'Jane Doe', type: 'deletedElement' }]
       }];
       const userActivityEvent: UserActivityEvent = { name: 'some.event', active: true, activityType: 'sampleType', elementKey: 'path' };
       service.start(userActivityEvent);
@@ -249,7 +250,7 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
-    it('should send one final request with an empty list of activities to the server when being stopped',
+  it('should send one final request with an empty list of activities to the server when being stopped',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
       const eventName = 'user.activity.event';
@@ -280,7 +281,7 @@ describe('UserActivityService', () => {
       expect(signOffRequest.request.body).toEqual([]);
     })));
 
-    it('should remove previously recorded activity automatically when a timeout was given',
+  it('should remove previously recorded activity automatically when a timeout was given',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
       const activityEvent = 'activity.signal';
@@ -313,7 +314,7 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
-    it('should reset the timer when receiving a second message bus event for an activity with a timeout within the interval',
+  it('should reset the timer when receiving a second message bus event for an activity with a timeout within the interval',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
       const activityEvent = 'activity.signal';
@@ -350,48 +351,195 @@ describe('UserActivityService', () => {
 
       // cleanup
       service.stop();
-      })));
+    })));
 
-      it('should allow multiple activities with a timeout for the same element',
-      fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
-        // given
-        const slightlyAfterFirstPoll_Secs = UserActivityService.POLLING_INTERVAL_MS * 0.0012;
-        const aBitBeforeSecondPoll_Secs = UserActivityService.POLLING_INTERVAL_MS * 0.0018;
-        const beforeFirstPollAndTimeout_Millis = UserActivityService.POLLING_INTERVAL_MS * 0.3;
-        const timeOfSecondPoll = UserActivityService.POLLING_INTERVAL_MS * 2;
+  it('should allow multiple activities with a timeout for the same element',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const slightlyAfterFirstPoll_Secs = UserActivityService.POLLING_INTERVAL_MS * 0.0012;
+      const aBitBeforeSecondPoll_Secs = UserActivityService.POLLING_INTERVAL_MS * 0.0018;
+      const beforeFirstPollAndTimeout_Millis = UserActivityService.POLLING_INTERVAL_MS * 0.3;
+      const timeOfSecondPoll = UserActivityService.POLLING_INTERVAL_MS * 2;
 
-        const firstEvent = 'first.event';
-        const secondEvent = 'second.event';
-        const userActivityEvents = [
-           { name: firstEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: slightlyAfterFirstPoll_Secs},
-           { name: secondEvent, active: true, activityType: 'aSecondType', elementKey: 'path', timeout: aBitBeforeSecondPoll_Secs },
-          ];
-        service.start(...userActivityEvents);
-        tick();
+      const firstEvent = 'first.event';
+      const secondEvent = 'second.event';
+      const userActivityEvents = [
+        { name: firstEvent, active: true, activityType: 'aType', elementKey: 'path', timeout: slightlyAfterFirstPoll_Secs },
+        { name: secondEvent, active: true, activityType: 'aSecondType', elementKey: 'path', timeout: aBitBeforeSecondPoll_Secs },
+      ];
+      service.start(...userActivityEvents);
+      tick();
 
-        // when
-        messageBus.publish(firstEvent, { path: '/path/to/workspace/element.ext' });
-        tick(beforeFirstPollAndTimeout_Millis);
-        messageBus.publish(secondEvent, { path: '/path/to/workspace/element.ext' });
-        tick(timeOfSecondPoll);
+      // when
+      messageBus.publish(firstEvent, { path: '/path/to/workspace/element.ext' });
+      tick(beforeFirstPollAndTimeout_Millis);
+      messageBus.publish(secondEvent, { path: '/path/to/workspace/element.ext' });
+      tick(timeOfSecondPoll);
 
-        // then
-        const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
-        expect(requests.length).toEqual(5);
-        requests[0].flush('response'); //  0.0s: request sent right after 'start(…)'
-        requests[1].flush('response'); //  0.0s: request sent right after first message bus event (resetting polling interval)
-        requests[2].flush('response'); //  1.5s: request sent right after second message bus event (resetting polling interval)
-        requests[3].flush('response'); //  6.5s: periodic polling; 'aType' timed out 0.5s ago
-        requests[4].flush('response'); // 11.5s: periodic polling; 'aSecondType' timed out 0.5s ago
-        httpTestingController.verify();
-        expect((requests[0].request.body as Array<ElementActivity>).length).toEqual(0);
-        expect(requests[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
-        expect(requests[2].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType', 'aSecondType'] }]);
-        expect(requests[3].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aSecondType'] }]);
-        expect((requests[4].request.body as Array<ElementActivity>).length).toEqual(0);
+      // then
+      const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(requests.length).toEqual(5);
+      requests[0].flush('response'); //  0.0s: request sent right after 'start(…)'
+      requests[1].flush('response'); //  0.0s: request sent right after first message bus event (resetting polling interval)
+      requests[2].flush('response'); //  1.5s: request sent right after second message bus event (resetting polling interval)
+      requests[3].flush('response'); //  6.5s: periodic polling; 'aType' timed out 0.5s ago
+      requests[4].flush('response'); // 11.5s: periodic polling; 'aSecondType' timed out 0.5s ago
+      httpTestingController.verify();
+      expect((requests[0].request.body as Array<ElementActivity>).length).toEqual(0);
+      expect(requests[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+      expect(requests[2].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType', 'aSecondType'] }]);
+      expect(requests[3].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aSecondType'] }]);
+      expect((requests[4].request.body as Array<ElementActivity>).length).toEqual(0);
 
-        // cleanup
-        service.stop();
-      })));
+      // cleanup
+      service.stop();
+    })));
 
+
+  it('should deactivate activity when another activity of the same group becomes active',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const event1 = 'user.activity.event1';
+      const type1 = 'user.activity.type1';
+      const type2 = 'user.activity.type2';
+      const event2 = 'user.activity.event2';
+      const uaGroup = 'user.activity.group';
+      const userActivityEvent1: UserActivityEvent = { name: event1, active: true, activityType: type1, elementKey: 'path', group: uaGroup };
+      const userActivityEvent2: UserActivityEvent = { name: event2, active: true, activityType: type2, elementKey: 'path', group: uaGroup };
+      service.start(userActivityEvent1, userActivityEvent2);
+
+      // when
+      messageBus.publish(event1, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(event2, { path: '/path/to/workspace/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      request[0].flush('response'); request[1].flush('response');
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+      expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type2] }]);
+
+      // cleanup
+      service.stop();
+    })));
+
+    it('should deactivate activity associated with a group when the group is deactiviated',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const event = 'user.activity.event1';
+      const type = 'user.activity.type1';
+      const groupDeactivationEvent = 'user.activity.event2';
+      const uaGroup = 'user.activity.group';
+      const userActivityEvent = { name: event, active: true, activityType: type, elementKey: 'path', group: uaGroup };
+      const groupDeactivationEventDefinition = { name: groupDeactivationEvent, active: false, activityType: uaGroup, elementKey: 'path'};
+      service.start(userActivityEvent, groupDeactivationEventDefinition);
+
+      // when
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(groupDeactivationEvent, { path: '/path/to/workspace/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      request[0].flush('response'); request[1].flush('response');
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type] }]);
+      expect(request[1].request.body).toEqual([]);
+
+      // cleanup
+      service.stop();
+    })));
+
+    it('should swap activities according to given transitions',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const event = 'user.activity.event1';
+      const type1 = 'user.activity.type1';
+      const type2 = 'user.activity.type2';
+      const transitions = [{to: type1}, {from: type1, to: type2}, {from: type2, to: type1}];
+      const userActivityEvent1: UserActivityEvent = { name: event, active: true, activityType: transitions, elementKey: 'path' };
+      service.start(userActivityEvent1);
+
+      // when
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(request.length).toEqual(3);
+      request.forEach((req) => req.flush('response'));
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+      expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type2] }]);
+      expect(request[2].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+
+      // cleanup
+      service.stop();
+    })));
+
+    it('should ignore transitions if "active" is "false"',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const activationEvent = 'activate';
+      const wrongDeactivationEvent = 'transitions do not work this way';
+      const type1 = 'user.activity.type1';
+      const type2 = 'user.activity.type2';
+      const transitions = [{to: type1}, {from: type1, to: type2}, {from: type2, to: type1}];
+      const userActivityEvent: UserActivityEvent = { name: activationEvent, active: true, activityType: transitions, elementKey: 'path' };
+      const inertEvent: UserActivityEvent = { name: wrongDeactivationEvent, active: false, activityType: transitions, elementKey: 'path' };
+      service.start(userActivityEvent, inertEvent);
+
+      // when
+      messageBus.publish(activationEvent, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(wrongDeactivationEvent, { path: '/path/to/workspace/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(request.length).toEqual(2);
+      request.forEach((req) => req.flush('response'));
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+      expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
+
+      // cleanup
+      service.stop();
+    })));
+
+    it('should transfer all user activities from the old to the new element on receiving a rename event',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      const activityEvent = 'activity.event';
+      const renameEvent = 'rename.event';
+      const userActivityEvent: UserActivityEvent = { name: activityEvent, active: true, activityType: 'aType', elementKey: 'path' };
+      const elementRenameEvent: UserActivityEvent = { name: renameEvent, active: true, activityType: 'renamed',
+                                                      elementKey: 'oldPath', newElementKey: 'newPath' };
+      service.start(userActivityEvent, elementRenameEvent);
+
+      // when
+      messageBus.publish(activityEvent, { path: '/path/to/workspace/element.ext' });
+      tick();
+      messageBus.publish(renameEvent, { oldPath: '/path/to/workspace/element.ext', newPath: '/path/to/renamed/element.ext' });
+      tick();
+
+      // then
+      const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
+      expect(request.length).toEqual(2);
+      request.forEach((req) => req.flush('response'));
+      httpTestingController.verify();
+      expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
+      expect(request[1].request.body).toEqual([{ element: '/path/to/renamed/element.ext', activities: ['aType'] },
+                                               { element: '/path/to/workspace/element.ext', activities: ['renamed'] }]);
+
+      // cleanup
+      service.stop();
+    })));
 });
