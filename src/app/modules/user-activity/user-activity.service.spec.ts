@@ -428,18 +428,18 @@ describe('UserActivityService', () => {
     it('should deactivate activity associated with a group when the group is deactiviated',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
-      const event1 = 'user.activity.event1';
+      const event = 'user.activity.event1';
       const type = 'user.activity.type1';
-      const event2 = 'user.activity.event2';
+      const groupDeactivationEvent = 'user.activity.event2';
       const uaGroup = 'user.activity.group';
-      const userActivityEvent1: UserActivityEvent = { name: event1, active: true, activityType: type, elementKey: 'path', group: uaGroup };
-      const userActivityEvent2: UserActivityEvent = { name: event2, active: false, activityType: uaGroup, elementKey: 'path'};
-      service.start(userActivityEvent1, userActivityEvent2);
+      const userActivityEvent = { name: event, active: true, activityType: type, elementKey: 'path', group: uaGroup };
+      const groupDeactivationEventDefinition = { name: groupDeactivationEvent, active: false, activityType: uaGroup, elementKey: 'path'};
+      service.start(userActivityEvent, groupDeactivationEventDefinition);
 
       // when
-      messageBus.publish(event1, { path: '/path/to/workspace/element.ext' });
+      messageBus.publish(event, { path: '/path/to/workspace/element.ext' });
       tick();
-      messageBus.publish(event2, { path: '/path/to/workspace/element.ext' });
+      messageBus.publish(groupDeactivationEvent, { path: '/path/to/workspace/element.ext' });
       tick();
 
       // then

@@ -29,6 +29,8 @@ export interface UserActivityEvent {
    * Alternatively, activityType can be specified as an array of transition objects with `from` and `to` fields each referring to an
    * activity type. In that case, for each transition object, **iff** the `from`-activity is active, it will be deactivated, and the
    * `to`-activity will be activated, instead. Transitions, and all `from` and `to` activities, must be associated with a single group.
+   * A transition may leave the `from` property undefined: this transition can only fire, if **no** activity type in the given group is
+   * currently active.
    */
   activityType: string | { from?: string, to: string }[];
   /**
@@ -157,19 +159,19 @@ export class UserActivityService {
     const currentActivity = this.userActivityStates.get(elementId) ? this.userActivityStates.get(elementId).get(group) : undefined;
     const transition = transitions.find((t) => t.from === currentActivity);
     if (transition) {
-      this.addUserActivity(elementId, transition.to, group);
+      this.setUserGroupActivity(elementId, transition.to, group);
     }
   }
 
   private updateUserActivity(elementId: string, activityType: string, active: boolean, group?: string) {
     if (active) {
-      this.addUserActivity(elementId, activityType, group ? group : activityType);
+      this.setUserGroupActivity(elementId, activityType, group ? group : activityType);
     } else {
       this.removeUserActivity(elementId, activityType);
     }
   }
 
-  private addUserActivity(elementId: string, activityType: string, group: string) {
+  private setUserGroupActivity(elementId: string, activityType: string, group: string) {
     if (!this.userActivityStates.has(elementId)) {
       this.userActivityStates.set(elementId, new Map<string, string>());
     }
