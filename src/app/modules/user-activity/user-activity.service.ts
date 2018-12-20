@@ -228,6 +228,7 @@ export class UserActivityService {
   }
 
   private broadcastCollaboratorActivity(activities: ElementActivity[]): void {
+    activities.forEach((elementActivity) => elementActivity.activities.sort((uaData1, uaData2) => uaData1.timestamp - uaData2.timestamp));
     this.messageBus.publish(USER_ACTIVITY_UPDATED, activities);
   }
 

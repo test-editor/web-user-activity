@@ -64,7 +64,7 @@ describe('UserActivityService', () => {
 
       // then
       const request = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      request.flush('response');
+      request.flush([]);
       httpTestingController.verify();
       expect(request.request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['sampleType'] }]);
 
@@ -92,7 +92,7 @@ describe('UserActivityService', () => {
 
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      request[0].flush('response'); request[1].flush('response');
+      request[0].flush([]); request[1].flush([]);
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['sampleType'] }]);
       expect(request[1].request.body).toEqual([]);
@@ -119,8 +119,8 @@ describe('UserActivityService', () => {
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(request.length).toEqual(2);
-      request[0].flush('response');
-      request[1].flush('response');
+      request[0].flush([]);
+      request[1].flush([]);
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['firstType'] }]);
       expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['firstType', 'differentType'] }]);
@@ -153,9 +153,9 @@ describe('UserActivityService', () => {
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(request.length).toEqual(3);
-      request[0].flush('response');
-      request[1].flush('response');
-      request[2].flush('response');
+      request[0].flush([]);
+      request[1].flush([]);
+      request[2].flush([]);
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
       expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType', 'anotherType'] }]);
@@ -180,10 +180,10 @@ describe('UserActivityService', () => {
       requests.forEach((testRequest) => {
         expect(testRequest.request.body).toEqual([]);
       });
-      requests[0].flush('response');
-      requests[1].flush('response');
-      requests[2].flush('response');
-      requests[3].flush('response');
+      requests[0].flush([]);
+      requests[1].flush([]);
+      requests[2].flush([]);
+      requests[3].flush([]);
       httpTestingController.verify();
 
       // cleanup
@@ -201,8 +201,8 @@ describe('UserActivityService', () => {
       tick(1.5 * UserActivityService.POLLING_INTERVAL_MS);
       const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(requests.length).toEqual(2);
-      requests[0].flush('response');
-      requests[1].flush('response');
+      requests[0].flush([]);
+      requests[1].flush([]);
       httpTestingController.verify();
 
       // when
@@ -211,7 +211,7 @@ describe('UserActivityService', () => {
 
       // then
       const requestAfter = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      requestAfter.flush('response');
+      requestAfter.flush([]);
       expect(requestAfter.request.body).toEqual([
         { element: '/path/to/workspace/element.ext', activities: ['sampleType'] },
         { element: '/path/to/different/workspace/element.ext', activities: ['sampleType'] }]);
@@ -250,6 +250,42 @@ describe('UserActivityService', () => {
       service.stop();
     })));
 
+    it('should sort collaborator activities by timestamp when receiving update from server',
+    fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
+      // given
+      let actualPayload: ElementActivity[];
+      messageBus.subscribe(USER_ACTIVITY_UPDATED, payload => actualPayload = payload);
+      const serverUpdate: ElementActivity[] = [{
+        element: '/path/to/file/collaborator/worksOn.ext',
+        activities: [
+          { user: 'John Doe', type: 'deleted.file', timestamp: 42.23 },
+          { user: 'John Doe', type: 'renamed.file', timestamp: 23.42 },
+          { user: 'John Doe', type: 'created.file', timestamp: 22.34 }]
+      }];
+      const userActivityEvent: UserActivityEvent = { name: 'some.event', active: true, activityType: 'sampleType', elementKey: 'path' };
+      service.start(userActivityEvent);
+      messageBus.publish('some.event', { path: '/path/to/workspace/element.ext' });
+      tick();
+      const request = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
+
+      // when
+      request.flush(serverUpdate);
+      tick();
+
+      // then
+      expect(actualPayload).toEqual([{
+        element: '/path/to/file/collaborator/worksOn.ext',
+        activities: [
+          { user: 'John Doe', type: 'created.file', timestamp: 22.34 },
+          { user: 'John Doe', type: 'renamed.file', timestamp: 23.42 },
+          { user: 'John Doe', type: 'deleted.file', timestamp: 42.23 }
+        ]
+      }]);
+
+      // cleanup
+      service.stop();
+    })));
+
   it('should send one final request with an empty list of activities to the server when being stopped',
     fakeAsync(inject([UserActivityService, MessagingService], (service: UserActivityService, messageBus: MessagingService) => {
       // given
@@ -259,14 +295,14 @@ describe('UserActivityService', () => {
       tick();
       // starting the service will immediately result in a request, which we're not interested in here, but the mock has to respond to it
       const initialRequest = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'initial request');
-      initialRequest.flush('response');
+      initialRequest.flush([]);
       httpTestingController.verify();
 
       // signal activity to ensure that final request isn't just empty "by accident"
       messageBus.publish(eventName, { path: '/path/to/workspace/element.ext' });
       tick();
       const requestOnChange = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'request on change');
-      requestOnChange.flush('response');
+      requestOnChange.flush([]);
       httpTestingController.verify();
       expect(requestOnChange.request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['sampleType'] }]);
 
@@ -276,7 +312,7 @@ describe('UserActivityService', () => {
 
       // then
       const signOffRequest = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` }, 'request to sign off');
-      signOffRequest.flush('response');
+      signOffRequest.flush([]);
       httpTestingController.verify();
       expect(signOffRequest.request.body).toEqual([]);
     })));
@@ -296,9 +332,9 @@ describe('UserActivityService', () => {
       tick(6000);
       const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(requests.length).toEqual(3);
-      requests[0].flush('response'); // request sent right after 'start(…)'
-      requests[1].flush('response'); // request sent right after message bus event (resetting polling interval)
-      requests[2].flush('response'); // request sent five seconds after the previous one (periodic polling)
+      requests[0].flush([]); // request sent right after 'start(…)'
+      requests[1].flush([]); // request sent right after message bus event (resetting polling interval)
+      requests[2].flush([]); // request sent five seconds after the previous one (periodic polling)
       httpTestingController.verify();
       expect((requests[0].request.body as Array<ElementActivity>).length).toEqual(0);
       expect(requests[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
@@ -306,7 +342,7 @@ describe('UserActivityService', () => {
 
       tick(4000); // total time passed is now 10 secs: another poll request has just occurred, but the activity has timed out 3 secs ago
       const requestAfterTimeout = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      requestAfterTimeout.flush('response');
+      requestAfterTimeout.flush([]);
       httpTestingController.verify();
       expect((requestAfterTimeout.request.body as Array<ElementActivity>).length).toEqual(0);
 
@@ -326,9 +362,9 @@ describe('UserActivityService', () => {
       tick(6000);
       const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(requests.length).toEqual(3);
-      requests[0].flush('response'); // request sent right after 'start(…)'
-      requests[1].flush('response'); // request sent right after message bus event (resetting polling interval)
-      requests[2].flush('response'); // request sent five seconds after the previous one (periodic polling)
+      requests[0].flush([]); // request sent right after 'start(…)'
+      requests[1].flush([]); // request sent right after message bus event (resetting polling interval)
+      requests[2].flush([]); // request sent five seconds after the previous one (periodic polling)
       httpTestingController.verify();
 
       // when
@@ -337,15 +373,15 @@ describe('UserActivityService', () => {
       // then
       tick(5000); // another poll request has just occurred, activity should remain for 2 more secs!
       const requestsBeforeTimeout = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      requestsBeforeTimeout[0].flush('response'); // request sent right after second message bus event (resetting polling interval)
-      requestsBeforeTimeout[1].flush('response'); // request sent five seconds after the previous one (periodic polling)
+      requestsBeforeTimeout[0].flush([]); // request sent right after second message bus event (resetting polling interval)
+      requestsBeforeTimeout[1].flush([]); // request sent five seconds after the previous one (periodic polling)
       httpTestingController.verify();
       expect(requestsBeforeTimeout[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
       expect(requestsBeforeTimeout[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
 
       tick(5000); // another poll request has just occurred, but the activity has timed out 3 secs ago
       const requestAfterTimeout = httpTestingController.expectOne({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      requestAfterTimeout.flush('response');
+      requestAfterTimeout.flush([]);
       httpTestingController.verify();
       expect((requestAfterTimeout.request.body as Array<ElementActivity>).length).toEqual(0);
 
@@ -379,11 +415,11 @@ describe('UserActivityService', () => {
       // then
       const requests = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(requests.length).toEqual(5);
-      requests[0].flush('response'); //  0.0s: request sent right after 'start(…)'
-      requests[1].flush('response'); //  0.0s: request sent right after first message bus event (resetting polling interval)
-      requests[2].flush('response'); //  1.5s: request sent right after second message bus event (resetting polling interval)
-      requests[3].flush('response'); //  6.5s: periodic polling; 'aType' timed out 0.5s ago
-      requests[4].flush('response'); // 11.5s: periodic polling; 'aSecondType' timed out 0.5s ago
+      requests[0].flush([]); //  0.0s: request sent right after 'start(…)'
+      requests[1].flush([]); //  0.0s: request sent right after first message bus event (resetting polling interval)
+      requests[2].flush([]); //  1.5s: request sent right after second message bus event (resetting polling interval)
+      requests[3].flush([]); //  6.5s: periodic polling; 'aType' timed out 0.5s ago
+      requests[4].flush([]); // 11.5s: periodic polling; 'aSecondType' timed out 0.5s ago
       httpTestingController.verify();
       expect((requests[0].request.body as Array<ElementActivity>).length).toEqual(0);
       expect(requests[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
@@ -416,7 +452,7 @@ describe('UserActivityService', () => {
 
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      request[0].flush('response'); request[1].flush('response');
+      request[0].flush([]); request[1].flush([]);
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
       expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type2] }]);
@@ -444,7 +480,7 @@ describe('UserActivityService', () => {
 
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
-      request[0].flush('response'); request[1].flush('response');
+      request[0].flush([]); request[1].flush([]);
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type] }]);
       expect(request[1].request.body).toEqual([]);
@@ -474,7 +510,7 @@ describe('UserActivityService', () => {
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(request.length).toEqual(3);
-      request.forEach((req) => req.flush('response'));
+      request.forEach((req) => req.flush([]));
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
       expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type2] }]);
@@ -505,7 +541,7 @@ describe('UserActivityService', () => {
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(request.length).toEqual(2);
-      request.forEach((req) => req.flush('response'));
+      request.forEach((req) => req.flush([]));
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
       expect(request[1].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: [type1] }]);
@@ -533,7 +569,7 @@ describe('UserActivityService', () => {
       // then
       const request = httpTestingController.match({ method: 'POST', url: `${dummyUrl}/user-activity` });
       expect(request.length).toEqual(2);
-      request.forEach((req) => req.flush('response'));
+      request.forEach((req) => req.flush([]));
       httpTestingController.verify();
       expect(request[0].request.body).toEqual([{ element: '/path/to/workspace/element.ext', activities: ['aType'] }]);
       expect(request[1].request.body).toEqual([{ element: '/path/to/renamed/element.ext', activities: ['aType'] },

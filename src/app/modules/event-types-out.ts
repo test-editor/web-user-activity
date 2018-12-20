@@ -3,7 +3,7 @@
  * USER_ACTIVITY_UPDATED notifies listeners about activities of collaborators working with the Test-Editor simultaneously.
  * Payload: ElementActivity[]
  */
-export interface UserActivityData { user: string; type: string; }
+export interface UserActivityData { user: string; type: string; timestamp?: number; }
 export interface ElementActivity {
   element: string;
   activities: UserActivityData[];
