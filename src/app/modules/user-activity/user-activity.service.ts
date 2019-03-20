@@ -1,14 +1,8 @@
 import { Injectable } from '@angular/core';
 import { MessagingService } from '@testeditor/messaging-service';
 import { HttpProviderService } from '@testeditor/testeditor-commons';
-import 'rxjs/add/observable/timer';
-import 'rxjs/add/operator/take';
-import 'rxjs/add/operator/takeUntil';
-import { Observable } from 'rxjs/Observable';
-import { timer } from 'rxjs/observable/timer';
-import { switchMap } from 'rxjs/operators';
-import { Subject } from 'rxjs/Subject';
-import { Subscription } from 'rxjs/Subscription';
+import { Subject, Subscription, timer } from 'rxjs';
+import { switchMap, take, takeUntil } from 'rxjs/operators';
 import { ElementActivity, USER_ACTIVITY_UPDATED } from '../event-types-out';
 
 export interface UserActivityEvent {
@@ -183,8 +177,8 @@ export class UserActivityService {
     const timerKey = this.createTimeoutTimerKey(elementId, activityType);
     if (!this.userActivityTimeoutTimers.has(timerKey)) {
       const timerSubject = new Subject<void>();
-      timerSubject.pipe(switchMap(() => timer(timeoutSecs * 1000)))
-      .take(1)
+      timerSubject.pipe(switchMap(() => timer(timeoutSecs * 1000))).pipe(
+      take(1))
       .subscribe(() => this.removeUserActivity(elementId, activityType));
 
       this.userActivityTimeoutTimers.set(timerKey, timerSubject);
@@ -213,8 +207,8 @@ export class UserActivityService {
   }
 
   private startPeriodicPolling() {
-    Observable.timer(0, UserActivityService.POLLING_INTERVAL_MS)
-    .takeUntil(this.userActivityEvent)
+    timer(0, UserActivityService.POLLING_INTERVAL_MS).pipe(
+    takeUntil(this.userActivityEvent))
     .subscribe(() => this.poll());
   }
 
