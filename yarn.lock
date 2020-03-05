@@ -331,16 +331,16 @@
     semver-intersect "1.4.0"
 
 "@testeditor/messaging-service@^1.5.0":
-  version "1.5.4"
-  resolved "https://registry.yarnpkg.com/@testeditor/messaging-service/-/messaging-service-1.5.4.tgz#6e4251f26cd345a6ab60049de42a73b19a9c63ac"
-  integrity sha512-Rp/MD1IjkQCvjfcuoJK+FIysuqc1dB3kAWsViQDghSzioI4ssi7R7KQdxTihy8h4SSBBBiEJoUT0TE/BDM9zVw==
+  version "1.5.6"
+  resolved "https://registry.yarnpkg.com/@testeditor/messaging-service/-/messaging-service-1.5.6.tgz#d2531de6326e4e342759cea24f456935b1056cbd"
+  integrity sha512-+snyjsJIb7I2jyfry9pzZ0cJ7FrTLNRe3TRVVRcN3sfNP5c0idhQiMiB2e/A07ujkqv94CMyWv7Y7G32s+qxYg==
   dependencies:
     tslib "^1.9.0"
 
 "@testeditor/testeditor-commons@^0.6.0":
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/@testeditor/testeditor-commons/-/testeditor-commons-0.6.2.tgz#3a15fc43dc59fc42efd382e024f626f9adbdedff"
-  integrity sha512-eDup89EmFb6cj8qOpPUJ9F2beOSNKekYIWQn3YenwG/hvTxSBiZp/nwyQuuKuaZzfXaEquUdQoEvRNy98bRsYQ==
+  version "0.6.4"
+  resolved "https://registry.yarnpkg.com/@testeditor/testeditor-commons/-/testeditor-commons-0.6.4.tgz#69cf88f31f7ee1121a0b075041d8c6b0e4621d7f"
+  integrity sha512-4pLZG9HYBOx+UMZB+Wd6NMSd86qEPdi7W247/f0DBmuGRx0W3RumooBUsOqaCCRJf1M19n3rM8SbgXP5BvE/MQ==
   dependencies:
     tslib "^1.9.0"
 
@@ -4227,14 +4227,6 @@ karma-firefox-launcher@1.1.0:
   resolved "https://registry.yarnpkg.com/karma-firefox-launcher/-/karma-firefox-launcher-1.1.0.tgz#2c47030452f04531eb7d13d4fc7669630bb93339"
   integrity sha512-LbZ5/XlIXLeQ3cqnCbYLn+rOVhuMIK9aZwlP6eOLGzWdo1UVp7t6CN3DP4SafiRLjexKwHeKHDm0c38Mtd3VxA==
 
-karma-html-reporter@0.2.7:
-  version "0.2.7"
-  resolved "https://registry.yarnpkg.com/karma-html-reporter/-/karma-html-reporter-0.2.7.tgz#fd73da9f1ac99fd5bafb309cf070942188e7ba63"
-  integrity sha1-/XPanxrJn9W6+zCc8HCUIYjnumM=
-  dependencies:
-    lodash "~2.2.0"
-    mu2 "~0.5.19"
-
 karma-jasmine-html-reporter@^1.0.0:
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/karma-jasmine-html-reporter/-/karma-jasmine-html-reporter-1.5.1.tgz#0fad2d2ac416bc04724318aad29b89bd86f7bfbc"
@@ -4471,11 +4463,6 @@ lodash@^4.0.0, lodash@^4.17.10, lodash@^4.17.11, lodash@^4.17.13, lodash@^4.17.1
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
-
-lodash@~2.2.0:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-2.2.1.tgz#ca935fd14ab3c0c872abacf198b9cda501440867"
-  integrity sha1-ypNf0UqzwMhyq6zxmLnNpQFECGc=
 
 log4js@^4.0.0:
   version "4.5.1"
@@ -4857,11 +4844,6 @@ ms@^2.0.0, ms@^2.1.1:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
-
-mu2@~0.5.19:
-  version "0.5.21"
-  resolved "https://registry.yarnpkg.com/mu2/-/mu2-0.5.21.tgz#888a8f0fd90eb1cfda9db81476f6e199cc9e58d3"
-  integrity sha1-iIqPD9kOsc/anbgUdvbhmcyeWNM=
 
 multicast-dns-service-types@^1.1.0:
   version "1.1.0"
@@ -7433,10 +7415,15 @@ tslib@1.9.3:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.9.3.tgz#d7e4dd79245d85428c4d7e4822a79917954ca286"
   integrity sha512-4krF8scpejhaOgqzBEcGM7yDIEfi0/8+8zDRZhNZZ2kjmHJ4hv3zCbQWxoJGz1iw5U0Jl0nma13xzHXcncMavQ==
 
-tslib@^1.8.0, tslib@^1.8.1, tslib@^1.9.0:
+tslib@^1.8.0, tslib@^1.8.1:
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.10.0.tgz#c3c19f95973fb0a62973fb09d90d961ee43e5c8a"
   integrity sha512-qOebF53frne81cf0S9B41ByenJ3/IuH8yJKngAX35CmiZySA0khhkovshKK+jGCaMnVomla7gVlIcc3EvKPbTQ==
+
+tslib@^1.9.0:
+  version "1.11.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.11.1.tgz#eb15d128827fbee2841549e171f45ed338ac7e35"
+  integrity sha512-aZW88SY8kQbU7gpV19lN24LtXh/yD4ZZg6qieAJDDg+YBsJcSmLGK9QpnUjAKVG/xefmvJGd1WUmfpT/g6AJGA==
 
 tslint@~5.14.0:
   version "5.14.0"
